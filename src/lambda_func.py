@@ -1,5 +1,5 @@
 def my_function(x, y):
-    return x + y
+    return x * y
 
 
 def handler(event, context):
