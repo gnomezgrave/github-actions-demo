@@ -1,0 +1,67 @@
+# This workflow will deploy the accommodation consolidation pipeline automatically
+# when something is pushed to the `master` branch.
+
+on:
+  push:
+    branches:
+      - master
+
+name: Deploy My Awesom Lambda function
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+
+    # Extract the keys from repo secrets
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        # These secrets are defined in the repository settings and
+        # the corresponding IAM user is consolidation-github-ci-cd
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: eu-west-2
+    # This installs Python3
+    - name: Setup Python environment
+      uses: actions/setup-python@v1.1.1
+    # Checkout the latest code
+    - name: Checkout
+      uses: actions/checkout@v1
+    # Install dependecies and run tests
+    - name: Install dependencies
+      continue-on-error: false
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+    - name: Lint with flake8
+      continue-on-error: false
+      run: |
+        pip install flake8
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - name: Test with pytest
+      continue-on-error: false
+      run: |
+        make test
+    - name: Deploy Lambda
+      id: lambda
+      env:
+        ENV: production
+        TARGET: my_awesome_lambda
+      run: |
+        make release
+    - name: handle failure
+      if: failure()
+      id: handle-failure
+      env:
+        ENV: production
+        NOTIFICATION_SUBJECT: "Deployment failed!"
+        NOTIFICATION_MESSAGE: "Please check the actions page for more details"
+      run: |
+        make notify-failure

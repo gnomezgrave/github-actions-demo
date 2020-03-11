@@ -1,0 +1,42 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: GitHub Actions Test
+
+Parameters:
+  MemorySize:
+    Description: The standard memory size for lambdas in MBs.
+    Type: Number
+    Default: 3008
+  TimeOut:
+    Description: The standard lambda timeout in seconds
+    Type: Number
+    Default: 900
+
+Resources:
+  MyAwesomeLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../_build/
+      Description: This is my demo lambda function
+      FunctionName: !Sub
+        - ${StackName}--lambda
+        - { StackName: !Ref "AWS::StackName" }
+      Handler: lambda_func.handler
+      MemorySize: !Sub ${MemorySize}
+      ReservedConcurrentExecutions: 1
+      Role: !GetAtt MyAwesomeLambdaFunctionLambdaRole.Arn
+      Runtime: python3.7
+      Timeout: !Sub ${TimeOut}
+
+  MyAwesomeLambdaFunctionLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
