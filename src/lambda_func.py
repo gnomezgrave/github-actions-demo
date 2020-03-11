@@ -1,5 +1,5 @@
 def my_function(x, y):
-    # test
+    # test function
     return x * y
 
 
